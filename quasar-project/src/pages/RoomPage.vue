@@ -417,9 +417,16 @@ function togglePanel(panelName) {
 }
 
 function copyMeetingLink() {
-    // Manually construct the clean URL to be 100% sure no other params leak
-    const cleanUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?id=${roomId}`
+    // Debugging Alerts
+    // alert(`DEBUG: roomId is "${roomId}"`)
     
+    // Manually construct the clean URL to be 100% sure no other params leak
+    // Ensure roomId is a string and clean it just in case
+    const cleanId = String(roomId).split('&')[0] 
+    const cleanUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?id=${cleanId}`
+    
+    // alert(`DEBUG: Copying this URL: ${cleanUrl}`)
+
     navigator.clipboard.writeText(cleanUrl).then(() => {
         $q.notify({
             message: 'Invite Link Copied!',
