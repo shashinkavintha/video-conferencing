@@ -306,7 +306,9 @@ const localVideoRefSpeaker = ref(null)
 const localScreenRef = ref(null)
 
 const roomId = route.query.id || 'Meeting'
-const userName = route.query.name || 'User'
+// Generate a random suffix if name is not provided to avoid "Host Switching" (Duplicate Identity) issues
+const defaultName = `User-${Math.floor(Math.random() * 1000)}`
+const userName = route.query.name || defaultName
 
 const viewMode = ref('gallery')
 const isRightPanelOpen = ref(false)

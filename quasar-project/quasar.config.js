@@ -167,8 +167,8 @@ export default defineConfig((ctx) => {
         description: 'Premium Video Conferencing App',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#121212',
-        theme_color: '#121212',
+        background_color: '#29B6F6',
+        theme_color: '#29B6F6',
         icons: [
           {
             src: 'icons/icon-128x128.png',
