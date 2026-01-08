@@ -41,7 +41,7 @@
                         <q-avatar size="100px" color="grey-9" text-color="white" font-size="40px">{{ userName.charAt(0).toUpperCase() }}</q-avatar>
                    </div>
                    <div class="name-tag flex items-center q-gutter-x-xs">
-                       You
+                       You ({{ userName }})
                        <q-icon v-if="isMicEnabled" name="mic" size="12px" :class="isLocalSpeaking ? 'text-green-5' : 'text-white'" />
                        <q-icon v-else name="mic_off" color="negative" size="12px" />
                    </div>

@@ -93,7 +93,7 @@ function createRoom() {
   
   // Auto-fill name if empty (optional, better UX)
   if (!userName.value) {
-    userName.value = 'Host' 
+    userName.value = `Host-${Math.floor(Math.random() * 1000)}`
   }
 
   // Navigate immediately
