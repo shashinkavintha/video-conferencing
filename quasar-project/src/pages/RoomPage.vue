@@ -290,12 +290,14 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { useRoomStore } from 'stores/roomStore'
 import { storeToRefs } from 'pinia'
 import ParticipantTile from 'components/ParticipantTile.vue'
 import { Track } from 'livekit-client'
 
 // Setup
+const $q = useQuasar()
 const store = useRoomStore()
 const route = useRoute()
 const router = useRouter()
@@ -419,6 +421,12 @@ function copyMeetingLink() {
     url.searchParams.set('id', roomId) // Only include ID, not the Name
     navigator.clipboard.writeText(url.toString())
     // could use notify plugin here
+    $q.notify({
+        message: 'Link Copied! (No Name)',
+        color: 'green',
+        icon: 'check',
+        position: 'top'
+    })
 }
 
 function toggleScreenShare() {
