@@ -578,9 +578,10 @@ function leaveCall() {
 
 /* Premium Dark Toolbar */
 .zoom-toolbar {
-    height: 88px;
-    background: #121212; /* Dark background */
+    height: 80px; /* Slightly shorter */
+    background: #1a1a1a; /* Lighter charcoal for toolbar */
     border-top: 1px solid #333;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5); /* Lift it up visually */
 }
 
 .video-area {
@@ -590,11 +591,12 @@ function leaveCall() {
 /* Gallery Grid */
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    grid-auto-rows: minmax(200px, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Smaller min-width for denser grid */
+    grid-auto-rows: 1fr; /* Make rows equal height to fill space */
+    gap: 12px;
     align-content: center;
-    max-width: 100%;
+    max-width: 1400px; /* Prevent overstretching on ultra-wide */
+    margin: 0 auto;
 }
 
 .video-tile {
@@ -677,8 +679,9 @@ function leaveCall() {
     
     .gallery-grid {
         gap: 8px;
-        grid-template-columns: 1fr; /* Single column on mobile is safer for video */
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Allow 2 cols on mobile */
         padding: 8px !important;
+        align-content: start; /* Don't center vertically if scrolling */
     }
     
     .right-panel {
