@@ -84,7 +84,7 @@ export const useRoomStore = defineStore('room', {
 
             try {
                 // 1. Get Token from our Supabase Edge Function
-                const response = await fetch('https://wmbteiauqzcslwnxfxwj.supabase.co/functions/v1/get-token', {
+                const response = await fetch(import.meta.env.VITE_SUPABASE_FUNCTION_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ roomName: roomId, participantName }),
@@ -94,7 +94,7 @@ export const useRoomStore = defineStore('room', {
 
                 const data = await response.json()
                 const token = data.token
-                const wsUrl = 'wss://video-conferencing-n9o307vp.livekit.cloud'
+                const wsUrl = import.meta.env.VITE_LIVEKIT_WS_URL
 
                 // 2. Connect to LiveKit
                 this.room = new Room()
