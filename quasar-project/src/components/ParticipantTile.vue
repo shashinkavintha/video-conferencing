@@ -10,7 +10,7 @@
     
     <div class="name-tag absolute-bottom-left q-ma-sm text-white bg-black-transparent q-px-sm rounded-borders" style="font-size: 12px; background: rgba(0,0,0,0.6);">
       {{ participant.identity }}
-      <q-icon v-if="isMicEnabled" name="mic" size="12px" />
+      <q-icon v-if="isMicEnabled" name="mic" size="12px" :color="isSpeaking ? 'green-5' : 'white'" />
       <q-icon v-else name="mic_off" color="negative" size="12px" />
     </div>
   </div>
@@ -30,6 +30,7 @@ const props = defineProps({
 const videoRef = ref(null)
 const isVideoEnabled = ref(false)
 const isMicEnabled = ref(false)
+const isSpeaking = ref(false)
 
 function handleTrackSubscribed(track) {
   if (track.kind === Track.Kind.Video) {
@@ -64,6 +65,10 @@ function handleTrackUnmuted(track) {
     if (track.kind === Track.Kind.Audio) isMicEnabled.value = true
 }
 
+function handleIsSpeakingChanged(speaking) {
+    isSpeaking.value = speaking
+}
+
 onMounted(() => {
     // Check initial state
     const cameraPub = props.participant.getTrackPublication(Track.Source.Camera)
@@ -74,14 +79,16 @@ onMounted(() => {
     const micPub = props.participant.getTrackPublication(Track.Source.Microphone)
     if (micPub && micPub.isSubscribed && micPub.track) {
          isMicEnabled.value = true
-         // Audio is usually automatically played by LiveKit if attached, handled via events mostly
     }
+    
+    isSpeaking.value = props.participant.isSpeaking
 
     // Listeners
     props.participant.on('trackSubscribed', handleTrackSubscribed)
     props.participant.on('trackUnsubscribed', handleTrackUnsubscribed)
     props.participant.on('trackMuted', handleTrackMuted)
     props.participant.on('trackUnmuted', handleTrackUnmuted)
+    props.participant.on('isSpeakingChanged', handleIsSpeakingChanged)
 })
 
 onUnmounted(() => {
@@ -89,6 +96,7 @@ onUnmounted(() => {
     props.participant.off('trackUnsubscribed', handleTrackUnsubscribed)
     props.participant.off('trackMuted', handleTrackMuted)
     props.participant.off('trackUnmuted', handleTrackUnmuted)
+    props.participant.off('isSpeakingChanged', handleIsSpeakingChanged)
 })
 </script>
 

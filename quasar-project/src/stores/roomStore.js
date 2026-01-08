@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { Room, RoomEvent, createLocalVideoTrack, createLocalAudioTrack, Track } from 'livekit-client'
+import { Room, RoomEvent, createLocalTracks, Track } from 'livekit-client'
 
 export const useRoomStore = defineStore('room', {
     state: () => ({
@@ -12,21 +12,68 @@ export const useRoomStore = defineStore('room', {
         isMicEnabled: true,
         isCameraEnabled: true,
         isScreenSharing: false,
+        messages: [],
     }),
 
     actions: {
         async initializeLocalTracks() {
+            console.log('Initializing local tracks (robust)...')
+            this.error = null
+            let tracks = []
+
+            // 1. Try Bundled Request first (updates permissions for both)
             try {
-                this.localVideoTrack = await createLocalVideoTrack({
-                    resolution: { width: 1280, height: 720 },
+                tracks = await createLocalTracks({
+                    audio: true,
+                    video: { resolution: { width: 1280, height: 720 } }
                 })
-                this.localAudioTrack = await createLocalAudioTrack()
-                return true
-            } catch (e) {
-                console.error('Error getting local tracks:', e)
-                this.error = 'Could not access camera or microphone.'
-                return false
+            } catch (bundledError) {
+                console.warn('Bundled track creation failed, retrying separately:', bundledError)
+
+                // 2. Fallback: Try Video Only
+                try {
+                    const videoTracks = await createLocalTracks({
+                        audio: false,
+                        video: { resolution: { width: 1280, height: 720 } }
+                    })
+                    tracks.push(...videoTracks)
+                } catch (videoError) {
+                    console.error('Video track failed:', videoError)
+                    this.error = 'Camera Error: ' + videoError.message
+                }
+
+                // 3. Fallback: Try Audio Only
+                try {
+                    const audioTracks = await createLocalTracks({ audio: true, video: false })
+                    tracks.push(...audioTracks)
+                } catch (audioError) {
+                    console.error('Audio track failed:', audioError)
+                    const msg = 'Microphone Error: ' + audioError.message
+                    this.error = this.error ? this.error + ' | ' + msg : msg
+                }
             }
+
+            // Assign tracks to state
+            const videoTrack = tracks.find(t => t.kind === Track.Kind.Video)
+            const audioTrack = tracks.find(t => t.kind === Track.Kind.Audio)
+
+            if (videoTrack) {
+                this.localVideoTrack = videoTrack
+                this.isCameraEnabled = true
+                console.log('Video track created')
+            } else {
+                this.isCameraEnabled = false
+            }
+
+            if (audioTrack) {
+                this.localAudioTrack = audioTrack
+                this.isMicEnabled = true
+                console.log('Audio track created')
+            } else {
+                this.isMicEnabled = false
+            }
+
+            return tracks.length > 0
         },
 
         async joinRoom(roomId, participantName) {
@@ -69,6 +116,18 @@ export const useRoomStore = defineStore('room', {
                     this.removeParticipant(participant)
                 })
 
+                this.room.on(RoomEvent.DataReceived, (payload, participant) => {
+                    const str = new TextDecoder().decode(payload)
+                    try {
+                        const data = JSON.parse(str)
+                        if (data.type === 'chat') {
+                            this.messages.push({ ...data, isLocal: false, sender: participant.identity })
+                        }
+                    } catch {
+                        // ignore
+                    }
+                })
+
                 // Listen for Local Screen Share
                 this.room.on(RoomEvent.LocalTrackPublished, (publication) => {
                     if (publication.kind === Track.Kind.Video && publication.source === Track.Source.ScreenShare) {
@@ -108,11 +167,29 @@ export const useRoomStore = defineStore('room', {
                 await this.room.disconnect()
             }
             this.room = null
-            this.localVideoTrack?.stop()
-            this.localAudioTrack?.stop()
+
+            if (this.localVideoTrack) {
+                this.localVideoTrack.stop()
+                if (this.localVideoTrack.mediaStreamTrack) {
+                    this.localVideoTrack.mediaStreamTrack.stop()
+                }
+                this.localVideoTrack.detach()
+            }
+
+            if (this.localAudioTrack) {
+                this.localAudioTrack.stop()
+                if (this.localAudioTrack.mediaStreamTrack) {
+                    this.localAudioTrack.mediaStreamTrack.stop()
+                }
+                this.localAudioTrack.detach()
+            }
+
+            this.localVideoTrack = null
+            this.localAudioTrack = null
             this.isConnected = false
             this.remoteParticipants = []
             this.isScreenSharing = false
+            this.messages = [] // Clear chat on leave
         },
 
         async toggleMic() {
@@ -144,6 +221,13 @@ export const useRoomStore = defineStore('room', {
             if (this.room && this.room.state === 'connected') {
                 try {
                     const isSharing = this.room.localParticipant.isScreenShareEnabled
+                    if (isSharing) {
+                        // Explicitly stop the track to ensure browser indicator clears immediately
+                        const trackPub = this.room.localParticipant.getTrackPublication(Track.Source.ScreenShare)
+                        if (trackPub && trackPub.track) {
+                            trackPub.track.stop()
+                        }
+                    }
                     await this.room.localParticipant.setScreenShareEnabled(!isSharing)
                     // State will be updated by the 'LocalTrackPublished/Unpublished' events
                 } catch (e) {
@@ -157,6 +241,29 @@ export const useRoomStore = defineStore('room', {
             if (this.room) {
                 const data = new TextEncoder().encode(JSON.stringify({ type: 'reaction', emoji }))
                 await this.room.localParticipant.publishData(data, { reliable: true })
+            }
+        },
+
+        async sendChatMessage(text, recipientIdentity = null) {
+            if (this.room) {
+                const payload = { type: 'chat', text, timestamp: Date.now(), sender: this.room.localParticipant.identity, isPrivate: !!recipientIdentity }
+                const data = new TextEncoder().encode(JSON.stringify(payload))
+
+                let destination = []
+                if (recipientIdentity) {
+                    const participant = this.remoteParticipants.find(p => p.identity === recipientIdentity)
+                    if (participant) {
+                        destination.push(participant.sid) // LiveKit publishData expects SIDs
+                    } else {
+                        console.warn('Recipient not found')
+                        return
+                    }
+                }
+
+                await this.room.localParticipant.publishData(data, { reliable: true, destination: destination.length ? destination : undefined })
+
+                // Add to local state
+                this.messages.push({ ...payload, isLocal: true, recipient: recipientIdentity || 'Everyone' })
             }
         },
 
