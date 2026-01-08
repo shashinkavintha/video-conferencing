@@ -11,7 +11,7 @@
            <div class="absolute-top-left q-ma-md z-top">
                <q-chip 
                 icon="verified_shield" 
-                label="Meeting Info" 
+                :label="'ID: ' + roomId" 
                 color="dark" 
                 text-color="white" 
                 clickable
