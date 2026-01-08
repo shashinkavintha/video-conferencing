@@ -89,15 +89,17 @@ function joinRoom() {
 
 function createRoom() {
   const newId = uid().slice(0, 8) 
-  roomId.value = newId
-  
-  // Auto-fill name if empty (optional, better UX)
-  if (!userName.value) {
-    userName.value = `Host-${Math.floor(Math.random() * 1000)}`
-  }
+  // Generate name locally to ensure we have it for navigation
+  const newName = userName.value ? userName.value : `Host-${Math.floor(Math.random() * 1000)}`
 
-  // Navigate immediately
-  joinRoom()
+  roomId.value = newId
+  userName.value = newName
+  
+  // Navigate immediately (bypass joinRoom validation)
+  router.push({ 
+    path: '/room', 
+    query: { id: newId, name: newName }
+  })
 }
 </script>
 
