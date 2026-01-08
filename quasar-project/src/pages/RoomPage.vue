@@ -284,6 +284,8 @@
         <div class="gt-xs" style="width: 80px;"></div>
     </div>
 
+    <!-- Version Badge -->
+    <div class="fixed-bottom-left q-ma-xs text-grey-8 z-max" style="font-size: 10px; pointer-events: none;">v0.0.5 - Clean Link</div>
   </q-page>
 </template>
 
