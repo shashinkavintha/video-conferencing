@@ -417,15 +417,25 @@ function togglePanel(panelName) {
 }
 
 function copyMeetingLink() {
-    const url = new URL(window.location.origin + window.location.pathname)
-    url.searchParams.set('id', roomId) // Only include ID, not the Name
-    navigator.clipboard.writeText(url.toString())
-    // could use notify plugin here
-    $q.notify({
-        message: 'Link Copied! (No Name)',
-        color: 'green',
-        icon: 'check',
-        position: 'top'
+    // Manually construct the clean URL to be 100% sure no other params leak
+    const cleanUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?id=${roomId}`
+    
+    navigator.clipboard.writeText(cleanUrl).then(() => {
+        $q.notify({
+            message: 'Invite Link Copied!',
+            color: 'green',
+            icon: 'check',
+            position: 'top',
+            timeout: 2000
+        })
+    }).catch(err => {
+        console.error('Failed to copy text: ', err)
+        $q.notify({
+            message: 'Failed to copy link',
+            color: 'negative',
+            icon: 'error',
+            position: 'top'
+        })
     })
 }
 
