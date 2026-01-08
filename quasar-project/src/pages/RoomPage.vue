@@ -415,8 +415,9 @@ function togglePanel(panelName) {
 }
 
 function copyMeetingLink() {
-    const url = window.location.href
-    navigator.clipboard.writeText(url)
+    const url = new URL(window.location.origin + window.location.pathname)
+    url.searchParams.set('id', roomId) // Only include ID, not the Name
+    navigator.clipboard.writeText(url.toString())
     // could use notify plugin here
 }
 
